@@ -1,13 +1,14 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:firebase_database/ui/firebase_animated_list.dart';
 import 'package:flutter/material.dart';
 import 'package:mess_firebase/messotd.dart';
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({Key key, this.app, this.user}) : super(key: key);
+  const ChatScreen({Key key, this.app, this.name, this.phone})
+      : super(key: key);
   final FirebaseApp app;
-  final String user;
+  final String name;
+  final String phone;
   @override
   State<ChatScreen> createState() => _ChatScreenState();
 }
@@ -17,19 +18,30 @@ class _ChatScreenState extends State<ChatScreen> {
 
   final reference = FirebaseDatabase.instance;
 
-  final messName = 'MessTitle';
-
   List<MessOTD> _list = [];
-
+  bool instance = false;
   @override
   void initState() {
     final FirebaseDatabase database = FirebaseDatabase(app: widget.app);
+    database.reference().child('User').onChildAdded.listen((event) {
+      if (event.snapshot.value['phone'] == widget.phone) {
+        instance = true;
+      }
+    });
     database.reference().child('Mess').onChildAdded.listen((event) {
-      MessOTD messOTD = MessOTD(
-          user: event.snapshot.value[messName]['user'],
-          text: event.snapshot.value[messName]['text']);
-      _list.add(messOTD);
-      setState(() {});
+      print(event.snapshot.value['text']);
+      if (event.snapshot.value['phone'] == widget.phone ||
+          event.snapshot.value['to'] == widget.phone) {
+        MessOTD messOTD = MessOTD(
+          text: event.snapshot.value['text'],
+          phone: event.snapshot.value['phone'],
+          to: event.snapshot.value['to'],
+          time: event.snapshot.value['time'],
+          seen: event.snapshot.value['seen'],
+        );
+        _list.add(messOTD);
+        setState(() {});
+      }
     });
     super.initState();
   }
@@ -57,10 +69,21 @@ class _ChatScreenState extends State<ChatScreen> {
               )),
               _ActionBar(
                 send: () {
-                  ref.child('Mess').push().child(messName).set({
-                    'text': _sendController.text,
-                    'user': widget.user
-                  }).asStream();
+                  DateTime time = DateTime.now();
+                  if (!instance) {
+                    ref.child('User').push().set({
+                      'name': widget.name,
+                      'phone': widget.phone,
+                    });
+                  }
+                  MessOTD messOTD = MessOTD(
+                    text: _sendController.text,
+                    to: 'talks',
+                    phone: widget.phone,
+                    time:
+                        '${time.hour}:${time.minute}, ${time.day}/${time.month}/${time.year}',
+                  );
+                  ref.child('Mess').push().set(messOTD.toJson()).asStream();
                   _sendController.clear();
                 },
                 controller: _sendController,
@@ -83,7 +106,7 @@ class DemoMessageList extends StatelessWidget {
       itemBuilder: (context, index) {
         return MessDesign(
           text: list[index].text,
-          user: list[index].user,
+          time: list[index].time,
         );
       },
     );
@@ -92,8 +115,8 @@ class DemoMessageList extends StatelessWidget {
 
 class MessDesign extends StatelessWidget {
   final String text;
-  final String user;
-  const MessDesign({Key key, this.text, this.user}) : super(key: key);
+  final String time;
+  const MessDesign({Key key, this.text, this.time}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +143,7 @@ class MessDesign extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      Text(user, style: TextStyle(fontSize: 12)),
+                      Text(time, style: TextStyle(fontSize: 12)),
                       Text(text),
                     ],
                   ),

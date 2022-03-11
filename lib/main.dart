@@ -29,10 +29,12 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
-  TextEditingController _controller = TextEditingController();
+  TextEditingController _controllerName = TextEditingController();
+  TextEditingController _controllerPhone = TextEditingController();
   @override
   void dispose() {
-    _controller.dispose();
+    _controllerName.dispose();
+    _controllerPhone.dispose();
     super.dispose();
   }
 
@@ -49,9 +51,22 @@ class _LoginState extends State<Login> {
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(width: 1)),
               child: TextField(
-                controller: _controller,
+                controller: _controllerName,
                 decoration: InputDecoration(
                   hintText: 'Name....',
+                  border: InputBorder.none,
+                ),
+              ),
+            ),
+            SizedBox(height: 20),
+            Container(
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(width: 1)),
+              child: TextField(
+                controller: _controllerPhone,
+                decoration: InputDecoration(
+                  hintText: 'Phone....',
                   border: InputBorder.none,
                 ),
               ),
@@ -62,7 +77,8 @@ class _LoginState extends State<Login> {
                       context,
                       MaterialPageRoute(
                           builder: (_) => ChatScreen(
-                                user: _controller.text,
+                                name: _controllerName.text,
+                                phone: _controllerPhone.text,
                               )));
                 },
                 child: Text('Đăng nhập'))
